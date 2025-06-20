@@ -1,4 +1,3 @@
-yaml
 name: TransChile CI/CD Pipeline
 
 on:
@@ -8,7 +7,7 @@ on:
     branches: [main, develop]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '22.14.0'
   DOCKER_REGISTRY: 'transchile-registry'
 
 jobs:
