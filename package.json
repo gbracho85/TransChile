@@ -1,17 +1,18 @@
 {
   "name": "transchile",
-  "version": "1.0.0",
+  "version": "v22.14.0",
+  "description": "Sistema de automatización y control de procesos para TransChile",
   "main": "index.js",
   "scripts": {
     "build": "echo Build completado",
+    "test": "npm run test:unit && npm run test:integration",
     "test:unit": "echo Ejecutando pruebas unitarias",
-    "test:integration": "echo Ejecutando pruebas integración",
-    "lint": "eslint ."
+    "test:integration": "echo Ejecutando pruebas de integración",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["ci", "transporte", "cicd", "automatizacion", "transchile"],
+  "author": "Geraldine Bracho",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
     "eslint": "^9.29.0"
   }
