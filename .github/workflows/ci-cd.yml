@@ -78,11 +78,12 @@ jobs:
         with:
           fetch-depth: 0
           
-      - name: SonarQube Scan
-        uses: sonarqube-quality-gate-action@master
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          projectBaseDir: .
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
   # Fase 4: Despliegue
   deploy:
