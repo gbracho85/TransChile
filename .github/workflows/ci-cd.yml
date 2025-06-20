@@ -78,7 +78,7 @@ jobs:
         with:
           fetch-depth: 0
           
-      - name: SonarCloud Scan
+      - name: SonarCloud Scan 2
         uses: SonarSource/sonarcloud-github-action@v2
         with:
           projectBaseDir: .
