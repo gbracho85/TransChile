@@ -2,19 +2,17 @@
   "name": "transchile",
   "version": "1.0.0",
   "main": "index.js",
-
-
-  
   "scripts": {
     "build": "echo Build completado",
     "test:unit": "echo Ejecutando pruebas unitarias",
     "test:integration": "echo Ejecutando pruebas integración",
     "lint": "eslint ."
-
   },
-  
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "eslint": "^9.29.0"
+  }
 }
