@@ -1,0 +1,18 @@
+{
+  "name": "transchile",
+  "version": "1.0.0",
+  "main": "index.js",
+
+
+  
+  "scripts": {
+    "build": "echo Build completado",
+    "test:unit": "echo Ejecutando pruebas unitarias",
+    "test:integration": "echo Ejecutando pruebas integración"
+  },
+  
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
