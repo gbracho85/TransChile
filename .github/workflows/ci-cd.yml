@@ -1,334 +1,91 @@
-name: TransChile CI/CD Pipeline - Avanzado
+name: TransChile CI/CD Basic
 
 on:
   push:
     branches: [main, develop]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
   pull_request:
     branches: [main, develop]
-  schedule:
-    - cron: '0 2 * * 1' # Ejecución semanal los lunes a las 2 AM
-
-env:
-  NODE_VERSION: '22.14.0'
-  DOCKER_REGISTRY: 'transchile-registry'
-  CACHE_VERSION: 'v1'
 
 jobs:
-  # Fase 1: Compilación y Build con matriz de versiones
+  # BUILD
   build:
-    name: Build en Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-        include:
-          - node-version: 22.x
-            is-primary: true
-      fail-fast: false
     
     steps:
-      - name: Checkout código
+      - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          
-      - name: Cache dependencias npm
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-
-            ${{ runner.os }}-node-${{ matrix.node-version }}-
-            
-      - name: Instalar dependencias
-        run: npm ci
-        
-      - name: Lint código
-        run: npm run lint
-        continue-on-error: ${{ matrix.node-version != '22.x' }}
-        
-      - name: Build aplicación
-        run: npm run build
-        
-      - name: Verificar build
-        run: |
-          if [ ! -d "dist" ]; then
-            echo "❌ Error: Directorio dist no encontrado"
-            exit 1
-          fi
-          echo "✅ Build exitoso en Node.js ${{ matrix.node-version }}"
-        
-      # Solo guardar artefactos de la versión principal
-      - name: Guardar artefactos
-        if: matrix.is-primary
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-files-${{ github.sha }}
-          path: |
-            dist/
-            package.json
-            package-lock.json
-          retention-days: 7
-
-  # Fase 2: Pruebas Automatizadas Paralelas
-  test:
-    name: ${{ matrix.test-type }} Tests
-    runs-on: ubuntu-latest
-    needs: build
-    strategy:
-      matrix:
-        test-type: [unit, integration, e2e, security]
-        node-version: [22.x]
-        include:
-          - test-type: unit
-            coverage: true
-          - test-type: integration
-            database: postgres
-          - test-type: e2e
-            browser: chrome
-          - test-type: security
-            audit-level: high
-      fail-fast: false
       
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: transchile_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-        
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          
-      - name: Cache dependencias npm
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ matrix.node-version }}-${{ env.CACHE_VERSION }}-
-            
-      - name: Instalar dependencias
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
         run: npm ci
-        
-      - name: Ejecutar pruebas unitarias
-        if: matrix.test-type == 'unit'
-        run: |
-          npm run test:unit -- --coverage --reporter=json --outputFile=coverage/unit-results.json
-        env:
-          CI: true
-          
-      - name: Ejecutar pruebas de integración
-        if: matrix.test-type == 'integration'
-        run: npm run test:integration
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/transchile_test
-          
-      - name: Ejecutar pruebas E2E
-        if: matrix.test-type == 'e2e'
-        run: |
-          npm run build
-          npm run start:test &
-          sleep 10
-          npm run test:e2e
-        env:
-          HEADLESS: true
-          
-      - name: Auditoría de seguridad
-        if: matrix.test-type == 'security'
-        run: |
-          echo "🔒 Ejecutando auditoría de seguridad..."
-          npm audit --audit-level=${{ matrix.audit-level }}
-          npx audit-ci --moderate
-          echo "🔍 Verificando vulnerabilidades conocidas..."
-          npx safety-check --json > security-report.json || true
-          echo "✅ Auditoría de seguridad completada"
-          
-      - name: Subir reporte de cobertura
-        if: matrix.test-type == 'unit' && matrix.coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-${{ github.sha }}
-          path: coverage/
-          
-      - name: Reporte de éxito
-        if: success()
-        run: echo "✅ Pruebas ${{ matrix.test-type }} exitosas"
-        
-      - name: Reporte de fallo
-        if: failure()
-        run: echo "❌ Fallo en pruebas ${{ matrix.test-type }}"
+      
+      - name: Lint code
+        run: npm run lint
+      
+      - name: Build app
+        run: npm run build
 
-  # Fase 3: Análisis de Calidad Mejorado
-  quality:
-    name: Análisis de Calidad
+  # TEST
+  test:
     runs-on: ubuntu-latest
-    needs: [build, test]
+    needs: build
+    
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-          
-      - name: Descargar artefactos de cobertura
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-${{ github.sha }}
-          path: coverage/
-        continue-on-error: true
-        
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
-        with:
-          projectBaseDir: .
-          args: >
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.coverage.exclusions=**/*.test.js,**/*.spec.js
-            -Dsonar.security.hotspots.ignored=false
-            -Dsonar.qualitygate.wait=true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          
-      - name: Análisis de vulnerabilidades con SNYK
-        run: |
-          echo "🔍 Analizando vulnerabilidades con Snyk..."
-          npx snyk test --json > snyk-report.json || true
-          npx snyk monitor || true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-          
-      - name: Análisis de dependencias
-        run: |
-          npx license-checker --summary
-          npx depcheck --json > dependency-report.json
-          
-      - name: Verificar Quality Gate
-        run: |
-          echo "🎯 Verificando Quality Gate de SonarCloud..."
-          echo "Criterios evaluados:"
-          echo "- Cobertura de código > 80%"
-          echo "- Vulnerabilidades de seguridad = 0"
-          echo "- Code smells < 10"
-          echo "- Duplicación de código < 3%"
-          # Aquí iría la lógica para verificar el Quality Gate
+          node-version: '18'
+          cache: 'npm'
+      
+      - run: npm ci
+      - run: npm test
 
-  # Fase 4: Construcción de Docker (Condicional)
-  docker:
-    name: Build Docker Image
+  # SECURITY CHECK
+  security:
     runs-on: ubuntu-latest
-    needs: [build, test, quality]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: build
+    
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-        
-      - name: Descargar artefactos
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          name: build-files-${{ github.sha }}
-          path: ./
-          
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Login to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_REGISTRY }}/transchile-app
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          node-version: '18'
+          cache: 'npm'
+      
+      - run: npm ci
+      - run: npm audit --audit-level=high
 
-  # Fase 5: Notificaciones
-      - name: Enviar notificación por correo
-          uses: dawidd6/action-send-mail@v3
-          with:
-            server_address: smtp.gmail.com
-            server_port: 465
-            username: ${{ secrets.EMAIL_USERNAME }}
-            password: ${{ secrets.EMAIL_PASSWORD }}
-            subject: ${{ steps.status.outputs.message }}
-            body: |
-              Resultado: ${{ steps.status.outputs.message }}
-              Repositorio: ${{ github.repository }}
-              Rama: ${{ github.ref_name }}
-              Commit: ${{ github.sha }}
-              Autor: ${{ github.actor }}
-            to: tgbracho85@gmail.com
-            from: TransChile CI/CD
-  
-  # Fase 6: Despliegue Condicional con Ambientes
+  # DEPLOY TO STAGING
   deploy-staging:
-    name: Deploy a Staging
     runs-on: ubuntu-latest
-    needs: [build, test, quality, docker]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    environment: staging
+    needs: [test, security]
+    if: github.ref == 'refs/heads/develop'
+    
     steps:
-      - name: Deploy a Staging
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to staging
         run: |
-          echo "🚀 Desplegando a ambiente de staging..."
-          echo "Docker image: ${{ env.DOCKER_REGISTRY }}/transchile-app:develop-${{ github.sha }}"
-          # Aquí irían los comandos específicos de despliegue a staging
+          echo "Deploying to staging..."
+          # Aquí van tus comandos de deploy
 
+  # DEPLOY TO PRODUCTION
   deploy-production:
-    name: Deploy a Producción
     runs-on: ubuntu-latest
-    needs: [build, test, quality, docker]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [test, security]
+    if: github.ref == 'refs/heads/main'
+    
     environment: production
+    
     steps:
-      - name: Aprobación manual requerida
-        run: echo "⏳ Esperando aprobación manual para producción..."
-        
-      - name: Deploy a Producción
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to production
         run: |
-          echo "🚀 Desplegando a producción..."
-          echo "Docker image: ${{ env.DOCKER_REGISTRY }}/transchile-app:latest"
-          # Aquí irían los comandos específicos de despliegue a producción
-          
-      - name: Smoke tests post-deploy
-        run: |
-          echo "🧪 Ejecutando smoke tests..."
-          # Verificaciones básicas post-despliegue
+          echo "Deploying to production..."
+          # Aquí van tus comandos de deploy
