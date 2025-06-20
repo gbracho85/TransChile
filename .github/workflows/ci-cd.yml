@@ -1,4 +1,4 @@
-name: TransChile CI/CD Pipeline
+name: TransChile CI/CD Pipeline v2
 
 on:
   push:
