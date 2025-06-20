@@ -8,7 +8,9 @@
   "scripts": {
     "build": "echo Build completado",
     "test:unit": "echo Ejecutando pruebas unitarias",
-    "test:integration": "echo Ejecutando pruebas integración"
+    "test:integration": "echo Ejecutando pruebas integración",
+    "lint": "eslint ."
+
   },
   
   "keywords": [],
